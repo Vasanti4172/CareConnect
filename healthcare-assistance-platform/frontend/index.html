@@ -1,0 +1,249 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareConnect | Rural Healthcare Assistance</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+    <div class="brand">
+        <div class="brand-icon">✚</div>
+        <div>
+            <h1>CareConnect</h1>
+            <p>Healthcare for everyone</p>
+        </div>
+    </div>
+
+    <div class="header-actions">
+        <label for="languageSelect" class="sr-only">Choose language</label>
+        <select id="languageSelect" aria-label="Choose language">
+            <option value="en">English</option>
+            <option value="te">తెలుగు</option>
+        </select>
+        <button class="outline-btn" id="logoutBtn" hidden>Logout</button>
+    </div>
+</header>
+
+<main>
+    <!-- LOGIN PAGE -->
+    <section id="loginPage" class="page active">
+        <div class="welcome-panel">
+            <span class="eyebrow">YOUR HEALTH, OUR PRIORITY</span>
+            <h2>Healthcare support made simple.</h2>
+            <p>Understand your health information, manage medical documents and access healthcare guidance in your preferred language.</p>
+            <div class="welcome-points">
+                <div>✓ Easy-to-understand health information</div>
+                <div>✓ English and Telugu language support</div>
+                <div>✓ Simple medical document management</div>
+            </div>
+        </div>
+
+        <div class="form-card login-card">
+            <div class="section-icon">♡</div>
+            <h2 data-en="Welcome Back" data-te="తిరిగి స్వాగతం">Welcome Back</h2>
+            <p class="muted" data-en="Login to your healthcare account" data-te="మీ ఆరోగ్య ఖాతాలోకి లాగిన్ అవ్వండి">Login to your healthcare account</p>
+
+            <form id="loginForm">
+                <label for="loginEmail">Email address</label>
+                <input id="loginEmail" type="email" placeholder="Enter your email" required>
+
+                <label for="loginPassword">Password</label>
+                <input id="loginPassword" type="password" placeholder="Enter your password" required>
+
+                <label for="loginRole">Login as</label>
+                <select id="loginRole">
+                    <option value="Patient">Patient</option>
+                    <option value="Healthcare Worker">Healthcare Worker</option>
+                </select>
+
+                <button type="submit" class="primary-btn full-btn">Login</button>
+            </form>
+
+            <p class="switch-text">New to CareConnect?
+                <button class="text-btn" data-page="registerPage">Create an account</button>
+            </p>
+            <p class="demo-note">Demo mode: Use any valid email and a password to explore.</p>
+            <div id="loginMessage" class="message" role="status"></div>
+        </div>
+    </section>
+
+    <!-- REGISTRATION PAGE -->
+    <section id="registerPage" class="page">
+        <div class="form-card wide-card">
+            <div class="section-icon">＋</div>
+            <h2>Create Your Account</h2>
+            <p class="muted">Register to access healthcare assistance services.</p>
+
+            <form id="registerForm">
+                <div class="form-grid">
+                    <div>
+                        <label for="fullName">Full name</label>
+                        <input id="fullName" type="text" placeholder="Enter your full name" required>
+                    </div>
+
+                    <div>
+                        <label for="registerEmail">Email address</label>
+                        <input id="registerEmail" type="email" placeholder="Enter your email" required>
+                    </div>
+
+                    <div>
+                        <label for="registerPhone">Mobile number</label>
+                        <input id="registerPhone" type="tel" placeholder="Enter mobile number" pattern="[0-9]{10}" required>
+                    </div>
+
+                    <div>
+                        <label for="registerRole">Register as</label>
+                        <select id="registerRole">
+                            <option value="Patient">Patient</option>
+                            <option value="Healthcare Worker">Healthcare Worker</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="registerLanguage">Preferred language</label>
+                        <select id="registerLanguage">
+                            <option value="English">English</option>
+                            <option value="Telugu">తెలుగు (Telugu)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="registerPassword">Create password</label>
+                        <input id="registerPassword" type="password" minlength="6" placeholder="Minimum 6 characters" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="primary-btn full-btn">Create Account</button>
+            </form>
+
+            <p class="switch-text">Already registered?
+                <button class="text-btn" data-page="loginPage">Back to Login</button>
+            </p>
+            <div id="registerMessage" class="message" role="status"></div>
+        </div>
+    </section>
+
+    <!-- DASHBOARD PAGE -->
+    <section id="dashboardPage" class="page">
+        <div class="page-heading">
+            <div>
+                <span class="eyebrow">PATIENT PORTAL</span>
+                <h2 id="dashboardWelcome">Welcome to your dashboard</h2>
+                <p class="muted">Your healthcare information in one simple place.</p>
+            </div>
+            <div class="profile-avatar" id="profileAvatar">P</div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="info-card profile-card">
+                <div class="card-heading">
+                    <span class="card-icon">♙</span>
+                    <h3>Patient Profile</h3>
+                </div>
+                <p><strong>Name:</strong> <span id="profileName">Demo Patient</span></p>
+                <p><strong>Email:</strong> <span id="profileEmail">demo@example.com</span></p>
+                <p><strong>Role:</strong> <span id="profileRole">Patient</span></p>
+                <p><strong>Language:</strong> <span id="profileLanguage">English</span></p>
+            </div>
+
+            <div class="info-card highlight-card">
+                <div class="card-heading">
+                    <span class="card-icon">▤</span>
+                    <h3>Medical Documents</h3>
+                </div>
+                <div class="stat-number" id="documentCount">0</div>
+                <p>Documents added in this session</p>
+                <button class="primary-btn" data-page="documentsPage">View Documents</button>
+            </div>
+
+            <div class="info-card">
+                <div class="card-heading">
+                    <span class="card-icon">♡</span>
+                    <h3>Healthcare Support</h3>
+                </div>
+                <p>Access understandable healthcare information and multilingual assistance.</p>
+                <span class="status-tag">Coming in next phases</span>
+            </div>
+
+            <div class="info-card">
+                <div class="card-heading">
+                    <span class="card-icon">◷</span>
+                    <h3>Recent Activity</h3>
+                </div>
+                <p id="recentActivity">No documents uploaded yet.</p>
+                <p class="muted small-text">Activity is shown for this browser session only.</p>
+            </div>
+        </div>
+
+        <div class="info-card quick-actions">
+            <h3>Quick Actions</h3>
+            <div class="action-buttons">
+                <button class="secondary-btn" data-page="documentsPage">＋ Upload Medical Document</button>
+                <button class="secondary-btn" data-page="documentsPage">View Medical Records</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- DOCUMENTS PAGE -->
+    <section id="documentsPage" class="page">
+        <div class="page-heading">
+            <div>
+                <span class="eyebrow">DOCUMENT MANAGEMENT</span>
+                <h2>Medical Documents</h2>
+                <p class="muted">Keep your important healthcare documents organized.</p>
+            </div>
+            <button class="outline-btn" data-page="dashboardPage">← Dashboard</button>
+        </div>
+
+        <div class="info-card upload-card">
+            <h3>Upload a Medical Document</h3>
+            <p class="muted">Choose the type of document and select a file from your device.</p>
+
+            <form id="uploadForm">
+                <label for="documentType">Document category</label>
+                <select id="documentType" required>
+                    <option value="">Select document type</option>
+                    <option value="Prescription">Prescription</option>
+                    <option value="Discharge Summary">Discharge Summary</option>
+                    <option value="Medical Report">Medical Report</option>
+                    <option value="Other">Other Healthcare Document</option>
+                </select>
+
+                <label for="documentFile">Select document</label>
+                <input id="documentFile" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" required>
+                <p class="small-text muted">Accepted formats: PDF, JPG, PNG, DOC and DOCX.</p>
+
+                <button type="submit" class="primary-btn">Add Document</button>
+            </form>
+            <div id="uploadMessage" class="message" role="status"></div>
+            <p class="demo-note">Demo mode: Files are listed in this browser session only. They are not uploaded to the server.</p>
+        </div>
+
+        <div class="info-card documents-list-card">
+            <div class="card-heading">
+                <h3>Your Documents</h3>
+                <span class="count-pill" id="documentCountLabel">0 files</span>
+            </div>
+            <div id="documentsList" class="documents-list">
+                <div class="empty-state">
+                    <div class="empty-icon">▤</div>
+                    <h3>No documents added yet</h3>
+                    <p>Your uploaded document names will appear here.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <p>© 2026 CareConnect | AI-Driven Healthcare Assistance Platform</p>
+    <p>Designed to make healthcare information easier to understand.</p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
