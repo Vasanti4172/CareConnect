@@ -17,3 +17,29 @@ uploads/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Python virtual environments
+venv/
+.venv/
+env/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Uploaded medical documents - never commit patient files
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Frontend dependencies
+node_modules/
+
+# Editor and operating system files
+.vscode/
+.DS_Store
+Thumbs.db
