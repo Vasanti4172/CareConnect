@@ -26,11 +26,14 @@ env/
 # Python cache files
 __pycache__/
 *.py[cod]
+*.log
 
 # Environment variables and secrets
 .env
 .env.*
 !.env.example
+venv/
+.venv/
 
 # Uploaded medical documents - never commit patient files
 backend/uploads/*
@@ -43,3 +46,5 @@ node_modules/
 .vscode/
 .DS_Store
 Thumbs.db
+.pytest_cache/
+.coverage

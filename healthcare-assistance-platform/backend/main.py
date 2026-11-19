@@ -11,14 +11,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from database import engine, Base, get_db
-from models import User, MedicalDocument
+from models import User, MedicalDocument,DocumentExtraction
 from schemas import (
     UserRegister,
     UserLogin,
     UserResponse,
     LoginResponse,
     UserUpdate,
-    DocumentResponse
+    DocumentResponse,
+    PDFExtractionResponse,
+    OCRExtractionResponse,
+    DocumentProcessingResponse
 )
 from security import (
     hash_password,
@@ -26,9 +29,16 @@ from security import (
     create_access_token,
     get_current_user
 )
+
+from services.pdf_processor import extract_text_from_pdf
+from services.ocr_processor import extract_text_using_ocr
+from services.document_processor import process_medical_document
 import os
 import uuid
+import json
 from pathlib import Path
+import pytesseract
+import traceback
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -364,3 +374,303 @@ def delete_document(
             status_code=500,
             detail="Unable to delete the document"
         )
+
+# Extract readable text from a patient's uploaded PDF
+@app.post(
+    "/documents/{document_id}/extract-text",
+    response_model=PDFExtractionResponse
+)
+def extract_document_text(
+    document_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    # Find only a document owned by the logged-in user
+    document = db.query(MedicalDocument).filter(
+        MedicalDocument.id == document_id,
+        MedicalDocument.user_id == current_user.id
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+
+    # This extraction endpoint currently supports PDF files only
+    if Path(document.file_path).suffix.lower() != ".pdf":
+        raise HTTPException(
+            status_code=400,
+            detail="Text extraction currently supports PDF files only"
+        )
+
+    # Resolve the stored filename inside the uploads directory
+    stored_filename = Path(document.file_path).name
+    stored_path = UPLOAD_DIR / stored_filename
+
+    try:
+
+        result = extract_text_from_pdf(str(stored_path))
+
+        if not result["has_extractable_text"]:
+
+            return {
+                "document_id": document.id,
+                "document_name": document.document_name,
+                "total_pages": result["total_pages"],
+                "extracted_text": "",
+                "character_count": 0,
+                "extraction_status": "ocr_required",
+                "message": (
+                    "No selectable text found. "
+                    "OCR processing will be required."
+                )
+            }
+
+        return {
+            "document_id": document.id,
+            "document_name": document.document_name,
+            "total_pages": result["total_pages"],
+            "extracted_text": result["extracted_text"],
+            "character_count": result["character_count"],
+            "extraction_status": "success",
+            "message": "PDF text extracted successfully."
+        }
+
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="Stored PDF file not found"
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error)
+        )
+
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to process this PDF document"
+        )
+
+# Extract text from scanned PDFs and medical images using OCR
+@app.post(
+    "/documents/{document_id}/extract-ocr",
+    response_model=OCRExtractionResponse
+)
+def extract_document_using_ocr(
+    document_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    # Verify that the document belongs to the logged-in user
+    document = db.query(MedicalDocument).filter(
+        MedicalDocument.id == document_id,
+        MedicalDocument.user_id == current_user.id
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+
+    # Get the stored filename safely
+    stored_filename = Path(document.file_path).name
+    stored_path = UPLOAD_DIR / stored_filename
+
+    try:
+
+        result = extract_text_using_ocr(
+            str(stored_path)
+        )
+
+        if not result["has_extracted_text"]:
+
+            return {
+                "document_id": document.id,
+                "document_name": document.document_name,
+                "total_pages": result["total_pages"],
+                "extracted_text": "",
+                "character_count": 0,
+                "extraction_status": "no_text_detected",
+                "message": (
+                    "OCR could not recognize readable text. "
+                    "Please upload a clearer document."
+                )
+            }
+
+        return {
+            "document_id": document.id,
+            "document_name": document.document_name,
+            "total_pages": result["total_pages"],
+            "extracted_text": result["extracted_text"],
+            "character_count": result["character_count"],
+            "extraction_status": "success",
+            "message": (
+                "OCR text extraction completed. "
+                "Please verify the extracted content."
+            )
+        }
+
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="Stored document file not found"
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error)
+        )
+
+    except Exception as error:
+
+        if isinstance(
+            error,
+            pytesseract.TesseractNotFoundError
+        ):
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    "Tesseract OCR is not installed "
+                    "or its executable path is incorrect."
+                )
+            )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to process the document using OCR"
+        )
+
+@app.post(
+    "/documents/{document_id}/process",
+    response_model=DocumentProcessingResponse
+)
+def process_uploaded_document(
+    document_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Step 1: Verify document ownership.
+    document = db.query(MedicalDocument).filter(
+        MedicalDocument.id == document_id,
+        MedicalDocument.user_id == current_user.id
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found."
+        )
+
+    # Step 2: Resolve the stored file safely.
+    stored_filename = Path(document.file_path).name
+    stored_path = UPLOAD_DIR / stored_filename
+
+    try:
+        # Step 3: Run extraction, cleaning and entity extraction.
+        result = process_medical_document(str(stored_path))
+
+        # Step 4: Store the processing result.
+        extraction_record = DocumentExtraction(
+            document_id=document.id,
+            extraction_method=result["extraction_method"],
+            raw_text=result["raw_text"],
+            cleaned_text=result["cleaned_text"],
+            entities_json=json.dumps(
+                result["entities"],
+                ensure_ascii=False
+            ),
+            extraction_status=result["extraction_status"]
+        )
+
+        db.add(extraction_record)
+        db.commit()
+        db.refresh(extraction_record)
+
+        # Step 5: Return the saved result.
+        return {
+            "extraction_id": extraction_record.id,
+            "document_id": document.id,
+            "document_name": document.document_name,
+            "extraction_method": result["extraction_method"],
+            "raw_text": result["raw_text"],
+            "cleaned_text": result["cleaned_text"],
+            "entities": result["entities"],
+            "extraction_status": result["extraction_status"],
+            "requires_human_verification": True,
+            "message": (
+                "Document processing completed. "
+                "Verify all extracted medical information."
+            )
+        }
+
+    except FileNotFoundError:
+        db.rollback()
+        raise HTTPException(
+            status_code=404,
+            detail="Stored document file not found."
+        )
+
+    except ValueError as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail=str(error)
+        )
+
+    except Exception as error:
+        db.rollback()
+
+        print("\n========== DOCUMENT PROCESSING ERROR ==========")
+        traceback.print_exc()
+        print("ERROR MESSAGE:", str(error))
+        print("================================================\n")
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to process the uploaded document."
+    )
+@app.get("/documents/{document_id}/extractions")
+def get_document_extractions(
+    document_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Verify the document belongs to the logged-in user.
+    document = db.query(MedicalDocument).filter(
+        MedicalDocument.id == document_id,
+        MedicalDocument.user_id == current_user.id
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found."
+        )
+
+    records = db.query(DocumentExtraction).filter(
+        DocumentExtraction.document_id == document.id
+    ).order_by(
+        DocumentExtraction.created_at.desc()
+    ).all()
+
+    return [
+        {
+            "extraction_id": record.id,
+            "document_id": record.document_id,
+            "extraction_method": record.extraction_method,
+            "raw_text": record.raw_text,
+            "cleaned_text": record.cleaned_text,
+            "entities": json.loads(record.entities_json or "{}"),
+            "extraction_status": record.extraction_status,
+            "created_at": record.created_at
+        }
+        for record in records
+    ]
